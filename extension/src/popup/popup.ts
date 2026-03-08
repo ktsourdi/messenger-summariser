@@ -114,11 +114,20 @@ function sendToBackground(message: unknown): Promise<unknown> {
   });
 }
 
+function isMessengerUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname === 'www.messenger.com' || hostname === 'messenger.com';
+  } catch {
+    return false;
+  }
+}
+
 async function fetchConversationInfo(): Promise<void> {
   try {
     const tab = await getActiveTab();
-    if (!tab?.id || !tab.url?.includes('messenger.com')) {
-      updateConversationInfo(null);
+    if (!tab?.id || !isMessengerUrl(tab.url)) {
       return;
     }
 
@@ -185,8 +194,7 @@ async function triggerSummarization(action: string): Promise<void> {
 
   try {
     const tab = await getActiveTab();
-    if (!tab?.id || !tab.url?.includes('messenger.com')) {
-      setStatus('Please open a Messenger conversation first.', 'error');
+    if (!tab?.id || !isMessengerUrl(tab.url)) {
       setLoading(false);
       return;
     }
