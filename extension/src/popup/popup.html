@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Messenger Summariser</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <h1>📝 Messenger Summariser</h1>
+      <span class="status-dot" id="status-dot" title="Service status"></span>
+    </header>
+
+    <section class="popup-section">
+      <div class="conversation-info" id="conversation-info">
+        <span class="info-label">No conversation detected</span>
+      </div>
+    </section>
+
+    <section class="popup-section">
+      <h2>Summarize</h2>
+      <button class="btn btn-primary" id="btn-summarize-now">📝 Summarize Now</button>
+      <button class="btn" id="btn-last-50">💬 Last 50 Messages</button>
+      <button class="btn" id="btn-last-hour">🕐 Last Hour</button>
+      <button class="btn" id="btn-last-day">📅 Last Day</button>
+    </section>
+
+    <section class="popup-section">
+      <div class="toggle-row">
+        <label for="voice-toggle">Include Voice Notes</label>
+        <input type="checkbox" id="voice-toggle" checked>
+      </div>
+    </section>
+
+    <section class="popup-section">
+      <button class="btn btn-telegram" id="btn-telegram">✈️ Send to Telegram</button>
+    </section>
+
+    <section class="popup-section">
+      <div class="status-area" id="status-area"></div>
+    </section>
+
+    <section class="popup-section">
+      <h2>Tracked Conversations</h2>
+      <div class="tracked-list" id="tracked-list">
+        <span class="info-label">Loading...</span>
+      </div>
+    </section>
+
+    <footer class="popup-footer">
+      <a href="#" id="settings-link">⚙️ Settings</a>
+    </footer>
+  </div>
+  <script src="../../dist/popup/popup.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Messenger Summariser",
+  "version": "1.0.0",
+  "description": "Summarize Facebook Messenger conversations, transcribe voice notes, and get mobile digests",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["https://www.messenger.com/*"],
+  "content_scripts": [
+    {
+      "matches": ["https://www.messenger.com/*"],
+      "js": ["dist/content/content.js"],
+      "css": []
+    }
+  ],
+  "background": {
+    "service_worker": "dist/background/background.js"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Messenger Summariser"
+  },
+  "icons": {}
+}
