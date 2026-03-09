@@ -87,12 +87,13 @@ router.post('/api/extract/manual-summary', async (req: Request, res: Response) =
 
     // Generate summary
     const config = getConfig();
-    let result;
-    if (body.useLLM && config.llmApiKey) {
-      result = await generateSummaryWithLLM(storedMessages, config.llmApiKey);
-    } else {
-      result = await generateSummary(storedMessages);
-    }
+    const result = config.llmApiKey
+      ? await generateSummaryWithLLM(storedMessages, {
+          apiKey: config.llmApiKey,
+          model: config.llmModel,
+          baseUrl: config.llmBaseUrl,
+        })
+      : await generateSummary(storedMessages);
 
     const summary = createSummary({
       conversationId: conversation.id,

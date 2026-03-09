@@ -114,8 +114,6 @@ export interface ManualSummaryRequest {
     value?: number;
   };
   includeVoiceNotes: boolean;
-  /** When true, use the LLM (OpenAI) summariser instead of the rule-based engine. Requires LLM_API_KEY. */
-  useLLM?: boolean;
 }
 
 // Extracted message from the extension
@@ -210,4 +208,7 @@ export interface Settings {
   summaryLength: 'short' | 'medium' | 'long';
   keepRawMessages: boolean;
   autoDeleteTranscriptsDays?: number;
+  llmApiKey?: string;
+  llmModel?: string;
+  llmBaseUrl?: string;
 }

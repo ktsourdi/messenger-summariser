@@ -9,7 +9,7 @@ import {
   updateDeliveryLog,
   getSummariesByConversation,
 } from '../db/repositories';
-import { generateSummary } from '../summarizer/summarizer';
+import { generateSummary, generateSummaryWithLLM } from '../summarizer/summarizer';
 import { sendTelegramMessage, formatQuickDigest } from '../delivery/telegram';
 import type { SummaryResponse } from '../models/types';
 
@@ -74,7 +74,14 @@ async function processOneTrackedConversation(
     return;
   }
 
-  const result = await generateSummary(messages);
+  const config = getConfig();
+  const result = config.llmApiKey
+    ? await generateSummaryWithLLM(messages, {
+        apiKey: config.llmApiKey,
+        model: config.llmModel,
+        baseUrl: config.llmBaseUrl,
+      })
+    : await generateSummary(messages);
 
   const summary = createSummary({
     conversationId,
@@ -90,7 +97,6 @@ async function processOneTrackedConversation(
   });
 
   // Deliver via Telegram if configured
-  const config = getConfig();
   const chatId = telegramTarget || config.telegramChatId;
   if (config.telegramBotToken && chatId) {
     const summaryResponse: SummaryResponse = {
