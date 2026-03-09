@@ -117,7 +117,7 @@ function buildLLMPrompt(messages: Message[]): ChatMessage[] {
 }
 
 function parseLLMResponse(raw: string): SummaryResult {
-  const cleaned = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+  const cleaned = raw.replace(/```(?:json)?\s*/g, '').trim();
   const data = JSON.parse(cleaned);
 
   return {

@@ -68,6 +68,10 @@ export async function chatCompletion(
 
   const content = data.choices[0].message.content;
 
+  if (!content) {
+    throw new Error('LLM API returned empty content');
+  }
+
   if (data.usage) {
     logger.info('LLM usage', {
       promptTokens: data.usage.prompt_tokens,
