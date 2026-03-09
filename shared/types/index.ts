@@ -114,6 +114,8 @@ export interface ManualSummaryRequest {
     value?: number;
   };
   includeVoiceNotes: boolean;
+  /** When true, use the LLM (OpenAI) summariser instead of the rule-based engine. Requires LLM_API_KEY. */
+  useLLM?: boolean;
 }
 
 // Extracted message from the extension

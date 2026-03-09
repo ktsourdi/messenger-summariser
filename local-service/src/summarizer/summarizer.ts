@@ -1,3 +1,4 @@
+import OpenAI from 'openai';
 import type { Message } from '../models/types';
 import { logger } from '../utils/logger';
 
@@ -62,18 +63,115 @@ export async function generateSummary(messages: Message[]): Promise<SummaryResul
 }
 
 /**
- * Stub for LLM-based summarization.
- * TODO: Replace the rule-based call with an actual LLM API call (e.g., OpenAI, Anthropic).
- * The apiKey parameter would authenticate against the chosen provider.
+ * Build the system prompt that instructs the LLM to return structured JSON.
+ */
+function buildSystemPrompt(): string {
+  return `You are a conversation summariser.  You receive a series of chat messages and produce a structured JSON summary.
+
+Return **only** valid JSON matching this schema (no markdown fences, no extra keys):
+{
+  "shortSummary": "<one-line overview>",
+  "detailedSummary": "<multi-line markdown summary grouped by topic>",
+  "actionItems": ["<sender>: <action item>", ...],
+  "unansweredQuestions": ["<sender>: <question>", ...],
+  "decisions": ["<sender>: <decision>", ...],
+  "mentions": ["@name", ...],
+  "needsReplyScore": <0-100>,
+  "voiceNoteHighlights": ["<description>", ...]
+}
+
+Rules:
+- shortSummary: ≤120 chars, include participant count and time range.
+- actionItems: extract every task, request, or commitment.
+- unansweredQuestions: include only questions that no subsequent message answered.
+- decisions: include explicit agreements or conclusions.
+- mentions: list every @mention found.
+- needsReplyScore: 0 = no reply needed, 100 = urgent reply needed. Judge by unanswered questions, pending tasks, and recency.
+- voiceNoteHighlights: note any voice messages with sender and timestamp.
+- detailedSummary: group insights by topic using markdown headings.`;
+}
+
+/**
+ * Format messages into a user prompt for the LLM.
+ */
+function buildUserPrompt(messages: Message[]): string {
+  const lines = messages.map(m => {
+    const time = formatTime(m.timestamp);
+    const type = m.messageType === 'voice' ? ' [voice note]' : '';
+    const body = m.textBody || '';
+    return `[${time}] ${m.senderName}${type}: ${body}`;
+  });
+  return `Summarise the following conversation:\n\n${lines.join('\n')}`;
+}
+
+/**
+ * Parse the LLM response text into a SummaryResult, falling back to rule-based
+ * if the JSON is malformed.
+ */
+function parseLLMResponse(text: string): SummaryResult | null {
+  try {
+    const parsed = JSON.parse(text);
+    return {
+      shortSummary: String(parsed.shortSummary || ''),
+      detailedSummary: String(parsed.detailedSummary || ''),
+      actionItems: Array.isArray(parsed.actionItems) ? parsed.actionItems.map(String) : [],
+      unansweredQuestions: Array.isArray(parsed.unansweredQuestions) ? parsed.unansweredQuestions.map(String) : [],
+      decisions: Array.isArray(parsed.decisions) ? parsed.decisions.map(String) : [],
+      mentions: Array.isArray(parsed.mentions) ? parsed.mentions.map(String) : [],
+      needsReplyScore: Math.min(Math.max(Number(parsed.needsReplyScore) || 0, 0), 100),
+      voiceNoteHighlights: Array.isArray(parsed.voiceNoteHighlights) ? parsed.voiceNoteHighlights.map(String) : [],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Generate a summary using the OpenAI Chat Completions API.
+ * Falls back to the rule-based engine if the LLM call fails.
  */
 export async function generateSummaryWithLLM(
   messages: Message[],
-  _apiKey: string,
+  apiKey: string,
+  model: string = 'gpt-4o-mini',
 ): Promise<SummaryResult> {
-  logger.info('LLM summarization requested – falling back to rule-based engine');
-  // TODO: Construct a prompt from the messages array and call the LLM API here.
-  // Example: const response = await fetch('https://api.openai.com/v1/chat/completions', { ... });
-  return generateSummary(messages);
+  if (messages.length === 0) {
+    return generateSummary(messages);
+  }
+
+  logger.info('Generating LLM summary', { messageCount: messages.length, model });
+
+  const client = new OpenAI({ apiKey });
+
+  try {
+    const completion = await client.chat.completions.create({
+      model,
+      messages: [
+        { role: 'system', content: buildSystemPrompt() },
+        { role: 'user', content: buildUserPrompt(messages) },
+      ],
+      temperature: 0.3,
+      max_tokens: 2048,
+    });
+
+    const content = completion.choices[0]?.message?.content?.trim();
+    if (!content) {
+      logger.error('LLM returned empty content – falling back to rule-based engine');
+      return generateSummary(messages);
+    }
+
+    const result = parseLLMResponse(content);
+    if (!result) {
+      logger.error('Failed to parse LLM response – falling back to rule-based engine', { content });
+      return generateSummary(messages);
+    }
+
+    return result;
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    logger.error('LLM API call failed – falling back to rule-based engine', { error: errorMessage });
+    return generateSummary(messages);
+  }
 }
 
 // ── Helpers ─────────────────────────────────────────────────────

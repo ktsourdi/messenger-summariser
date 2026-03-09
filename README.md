@@ -68,6 +68,32 @@ export TELEGRAM_BOT_TOKEN=your_bot_token
 export TELEGRAM_CHAT_ID=your_chat_id
 ```
 
+### Configure LLM Summarization
+
+To use OpenAI-powered summarization instead of the built-in rule-based engine, set your API key:
+
+```bash
+export LLM_API_KEY=sk-your-openai-api-key
+```
+
+Then pass `"useLLM": true` in your manual summary requests:
+
+```bash
+curl -X POST http://localhost:3456/api/extract/manual-summary \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "conversation": { "platformConversationRef": "group-1", "title": "Team Chat", "participants": ["Alice", "Bob"] },
+    "messages": [
+      { "senderName": "Alice", "messageType": "text", "textBody": "Can you send the report by Friday?" },
+      { "senderName": "Bob", "messageType": "text", "textBody": "Sure, will do" }
+    ],
+    "includeVoiceNotes": false,
+    "useLLM": true
+  }'
+```
+
+When `useLLM` is `true` and `LLM_API_KEY` is set, the service uses `gpt-4o-mini` via the OpenAI API. If the LLM call fails for any reason (network error, rate limit, malformed response), it automatically falls back to the rule-based engine.
+
 ### Environment Variables
 
 | Variable | Default | Description |
@@ -76,7 +102,7 @@ export TELEGRAM_CHAT_ID=your_chat_id
 | `DB_PATH` | `./data/messenger-summariser.db` | SQLite database file path |
 | `TELEGRAM_BOT_TOKEN` | – | Telegram Bot API token |
 | `TELEGRAM_CHAT_ID` | – | Telegram chat ID for delivery |
-| `LLM_API_KEY` | – | API key for LLM summarization (future) |
+| `LLM_API_KEY` | – | OpenAI API key for LLM-powered summarization |
 | `TRANSCRIPTION_API_KEY` | – | API key for speech-to-text (future) |
 | `LOG_LEVEL` | `info` | Log level: debug, info, warn, error |
 
@@ -119,7 +145,7 @@ local-service/
     index.ts              # Express server entry point
     api/routes.ts         # API route handlers
     db/                   # SQLite database + repositories
-    summarizer/           # Rule-based summarization engine
+    summarizer/           # Summarization engine (rule-based + OpenAI LLM)
     transcriber/          # Voice note transcription (stub)
     delivery/             # Telegram message delivery
     scheduler/            # Digest scheduling with node-cron

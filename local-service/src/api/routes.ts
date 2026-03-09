@@ -26,7 +26,7 @@ import {
   getJobById,
   getConversation,
 } from '../db/repositories';
-import { generateSummary } from '../summarizer/summarizer';
+import { generateSummary, generateSummaryWithLLM } from '../summarizer/summarizer';
 import { enqueueJob, getJobStatus } from '../jobs/jobQueue';
 import { sendTelegramMessage, formatQuickDigest, formatFullDigest, formatActionOnly } from '../delivery/telegram';
 import { getConfig } from '../utils/config';
@@ -86,7 +86,13 @@ router.post('/api/extract/manual-summary', async (req: Request, res: Response) =
     }
 
     // Generate summary
-    const result = await generateSummary(storedMessages);
+    const config = getConfig();
+    let result;
+    if (body.useLLM && config.llmApiKey) {
+      result = await generateSummaryWithLLM(storedMessages, config.llmApiKey);
+    } else {
+      result = await generateSummary(storedMessages);
+    }
 
     const summary = createSummary({
       conversationId: conversation.id,
